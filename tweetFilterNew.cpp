@@ -2,33 +2,51 @@
 #include <fstream>
 #include <vector>
 #include <string>
+// #include <unordered_map>
 using namespace std;
 
-class tweetFilter{
+class tweetFilter
+{
 private:
-    vector<string> bannedWords;
-    vector<int> wordFrequency;
-    vector<string> mostFrequentWords; //TODO: complete this ! <<<+++>>>
+    vector<string>  bannedWords,
+                    positiveWords,
+                    negativeWords, 
+                    allWords, 
+                    mostFrequentWords; //TODO: complete this ! <<<+++>>>
+    vector<int> bannedWordFrequency;
+    // unordered_map<string, int> word_freq;
+    // vector<string, int> mostFrequentWords; 
 
     string getAstriskReplacable(string bannedWord) { 
         return bannedWord.replace(int(bannedWord.length()/2), 1, "*");
     }
 
 public:
-    tweetFilter(string bannedFileName){
-        ifstream inFile(bannedFileName);
+    tweetFilter(string bannedFileName, string positiveFileName, string negativeFileName)
+    {
+        ifstream bannedFile(bannedFileName);
+        ifstream positiveFile(positiveFileName);
+        ifstream negativeFile(negativeFileName);
         string word = "";
-        while(inFile >> word){
+        while(bannedFile >> word){
             bannedWords.push_back(word);
-            wordFrequency.push_back(0);
+            bannedWordFrequency.push_back(0);
         }
-        inFile.close();
+        while(positiveFile >> word){
+            positiveWords.push_back(word);
+        }
+        while(negativeFile >> word){
+            negativeWords.push_back(word);
+        }
+        bannedFile.close();
+        positiveFile.close();
+        negativeFile.close();
     }
 
-    void resetWordFrequency(){
+    void resetbannedWordFrequency(){
         int index=0;
         for(auto bannedword : bannedWords){
-            wordFrequency.at(index++) = 0;
+            bannedWordFrequency.at(index++) = 0;
         }
     }
 
@@ -39,8 +57,20 @@ public:
         return word;
     }
 
-    void readFile(){
-        //
+    void saveWords(string tweet){
+        string word="";
+        for(int i=0; i<tweet.length(); i++){
+            if(tweet[i]==' '||tweet[i]=='.'||tweet[i]==','||tweet[i]=='!'||tweet[i]=='?'||tweet[i]==':'||tweet[i]==';'){
+                if(word!=""){ 
+                    allWords.push_back(word);
+                    // word_freq[word]++;
+                }
+                word="";
+            }
+            else{
+                word += tweet[i];
+            }
+        }
     }
 
     string filterTweet(string tweet)
@@ -53,7 +83,7 @@ public:
             while (index != string::npos)
             {
                 filteredTweet.replace(index, bannedWord.length(), getAstriskReplacable(bannedWord));
-                wordFrequency.at(wordindex)++ ;
+                bannedWordFrequency.at(wordindex)++ ;
                 index = filteredTweet.find(bannedWord, index+1);
             }
             wordindex++ ;
@@ -63,17 +93,20 @@ public:
 
     void filterFile(string inputFileName, string outputFileName) 
     {
-        resetWordFrequency();
+        resetbannedWordFrequency();
         ifstream inputFile(inputFileName);
         ofstream outputFile(outputFileName);
         string line="";
         if(inputFile){
+            cout << "\n\n>> The sentiment analysis of the file \'" << inputFileName << "\' is :-\n" << endl;
             while(getline(inputFile, line))
             {
                 string filteredLine = filterTweet(line);
                 outputFile << filteredLine << endl;
+                saveWords(line);
+                cout << filteredLine << " : " << sentimentAnalysis(filteredLine) << endl;
             }
-            displayResults(inputFileName);
+            displayResults();
         }
         else{
             cout << "The file named \'" << inputFileName << "\' doesn't exist or is missing from this folder!" << endl;
@@ -82,17 +115,42 @@ public:
         outputFile.close();
     }
 
-    void displayResults(string fileName){
+    void displayResults()
+    {
         int i=0;
-        cout << "\n\n > For File : " << fileName << "\n" << endl;
-        for(auto bannedWord : bannedWords){
-            cout << "\'" << bannedWord << "\' found " << wordFrequency.at(i++) << " times" << endl; 
+        cout << "\n>> And the usage of banned words in it are :-\n" << endl;
+        for(auto bannedWord : bannedWords)
+        {
+            cout << "\'" << bannedWord << "\' found " << bannedWordFrequency.at(i++) << " times" << endl; 
         }
+    }
+
+    string sentimentAnalysis(string tweet){
+        int sentiment = 0;
+        for (auto word : positiveWords)
+        {
+            int index = wordToLower(tweet).find(word);
+            while (index != string::npos)
+            {
+                sentiment++ ;
+                index = wordToLower(tweet).find(word, index+1);
+            }
+        }
+        for (auto word : negativeWords)
+        {
+            int index = wordToLower(tweet).find(word);
+            while (index != string::npos)
+            {
+                sentiment-- ;
+                index = wordToLower(tweet).find(word, index+1);
+            }
+        }
+        return (sentiment>=0)?(sentiment>0)?"Positive":"Neutral":"Negative";
     }
 };
 
 int main(){
-    tweetFilter tf("banned.txt");
+    tweetFilter tf("banned.txt", "positive.txt", "negative.txt");
     tf.filterFile("tweets1.txt","tweets1Filtered.txt");
     tf.filterFile("tweets2.txt","tweets2Filtered.txt");
     tf.filterFile("tweets3.txt","tweets3Filtered.txt");
