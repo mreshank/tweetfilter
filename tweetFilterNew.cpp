@@ -67,14 +67,19 @@ public:
         ifstream inputFile(inputFileName);
         ofstream outputFile(outputFileName);
         string line="";
-        while(getline(inputFile, line))
-        {
-            string filteredLine = filterTweet(line);
-            outputFile << filteredLine << endl;
+        if(inputFile){
+            while(getline(inputFile, line))
+            {
+                string filteredLine = filterTweet(line);
+                outputFile << filteredLine << endl;
+            }
+            displayResults(inputFileName);
+        }
+        else{
+            cout << "The file named \'" << inputFileName << "\' doesn't exist or is missing from this folder!" << endl;
         }
         inputFile.close(); 
         outputFile.close();
-        displayResults(inputFileName);
     }
 
     void displayResults(string fileName){
