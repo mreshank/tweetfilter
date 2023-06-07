@@ -154,7 +154,8 @@ void displayMenu() {
                 cout << "Invalid choice. Please enter a valid option.\n";
                 break;
         }
-    } while (choice != 5);
+    } 
+    while (choice != 5);
 }
 
 int main(){    
